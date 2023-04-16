@@ -1,0 +1,327 @@
+#########################################################
+## Global
+#########################################################
+
+mqtt:
+  host: 192.168.141.21
+  user: lee
+  password: PASSWORD
+
+birdseye:
+  enabled: True
+  mode: continuous
+  # width: 1920
+  # height: 1080
+  # quality: 8
+  # mode: motion
+
+#ffmpeg:
+#  hwaccel_args:
+#    - -hwaccel
+#    - vaapi
+#    - -hwaccel_device
+#    - /dev/dri/renderD128
+#    - -hwaccel_output_format
+#    - yuv420p
+
+detectors:
+  coral:
+    type: edgetpu
+    device: usb
+
+database:
+  path: /db/frigate.db
+
+snapshots:
+  enabled: True
+  timestamp: False
+  bounding_box: True
+  crop: False
+  required_zones: []
+  retain:
+    default: 7
+
+#model:
+#  labelmap:
+#    15: animal
+#    16: animal
+#    17: animal
+#    18: animal
+#    19: animal
+#    20: animal
+#    21: animal
+#    22: animal
+#    23: animal
+#    24: animal
+
+go2rtc:
+  streams:
+    driveway_cam:
+      - rtsp://{FRIGATE_RTSP_USER}:{FRIGATE_RTSP_PASSWORD}@192.168.141.14:554/cam/realmonitor?channel=1&subtype=0
+    backyard_cam:
+      - rtsp://{FRIGATE_RTSP_USER}:{FRIGATE_RTSP_PASSWORD}@192.168.141.15:554/cam/realmonitor?channel=1&subtype=0
+    living_room_cam:
+      - rtsp://{FRIGATE_RTSP_USER}:{FRIGATE_RTSP_PASSWORD}@192.168.141.16:554/cam/realmonitor?channel=1&subtype=0
+
+##########################################################
+## Driveway
+##########################################################
+
+cameras:
+  driveway_cam:
+    ffmpeg:
+      output_args:
+        record: preset-record-generic-audio-copy
+      inputs:
+        - path: rtsp://127.0.0.1:8554/driveway_cam # <--- the name here must match the name of the camera in restream
+          input_args: preset-rtsp-restream
+          roles:
+            - record
+            - detect
+
+# Disabled since the above uses the new restream feature
+    # ffmpeg:
+    #   inputs:
+    #     - path: rtsp://{FRIGATE_RTSP_USER}:{FRIGATE_RTSP_PASSWORD}@192.168.141.14:554/cam/realmonitor?channel=1&subtype=0
+    #       roles:
+    #         - detect
+    #         - record
+
+    detect:
+      width: 3840
+      height: 2160
+      fps: 10
+      enabled: True
+
+    zones:
+      driveway:
+        coordinates: 2141,2160,1881,1405,2067,1347,3840,1796,3840,2160
+        objects:
+          - person
+          - animal
+      street:
+        coordinates: 2528,1432,2806,1297,3840,1545,3840,1761
+        objects:
+          - person
+          - animal
+          - car
+
+    objects:
+      track:
+        - person
+        - animal
+        - car
+      filters:
+        person:
+          # Optional: minimum width*height of the bounding box for the detected object (default: 0)
+          min_area: 40000
+          # Optional: maximum width*height of the bounding box for the detected object (default: 24000000)
+          max_area: 100000
+          mask:
+            - 0,0,0,2160,2098,2160,1850,1401,2470,1223,3840,1537,3840,0
+        car:
+          # Optional: minimum width*height of the bounding box for the detected object (default: 0)
+          min_area: 5000
+          # Optional: maximum width*height of the bounding box for the detected object (default: 24000000)
+          max_area: 200000
+          mask:
+            - 0,0,0,2160,2098,2160,1850,1401,2470,1223,3840,1537,3840,0
+        animal:
+          # Optional: minimum width*height of the bounding box for the detected object (default: 0)
+          min_area: 1000
+          mask:
+            - 0,0,0,2160,2098,2160,1850,1401,2470,1223,3840,1537,3840,0
+
+    motion:
+      # Increasing this value will make motion detection less sensitive
+      # threshold: 30
+      # default 25
+
+      # Minimum size in pixels in the resized motion image that counts as motion.
+      # Increasing this value will prevent smaller areas of motion from being detected. Decreasing will
+      # make motion detection more sensitive to smaller moving objects.
+      # As a rule of thumb:
+      #  - 15 - high sensitivity
+      #  - 30 - medium sensitivity
+      #  - 50 - low sensitivity
+      # contour_area: 35
+      # default: 30
+      mask:
+       - 0,0,0,2160,2098,2160,1850,1401,2470,1223,3840,1537,3840,0
+
+    record:
+      enabled: True
+      retain:
+        days: 7
+        mode: motion
+      events:
+#        max_seconds: 240 Deprecated in 0.11
+        pre_capture: 5
+        post_capture: 5
+        retain:
+          default: 7
+          mode: active_objects
+#        objects:
+#          - person
+#          - car
+#          - animal
+        required_zones:
+          - driveway
+          - street
+
+    snapshots:
+      enabled: True
+      timestamp: False
+      bounding_box: True
+      crop: False
+      required_zones:
+        - driveway
+        - street
+      retain:
+        default: 7
+
+##########################################################
+## Backyard
+##########################################################
+
+  backyard_cam:
+    ffmpeg:
+      output_args:
+        record: preset-record-generic-audio-copy
+      inputs:
+        - path: rtsp://127.0.0.1:8554/backyard_cam # <--- the name here must match the name of the camera in restream
+          input_args: preset-rtsp-restream
+          roles:
+            - record
+            - detect
+
+# Disabled since the above uses the new restream feature
+    # ffmpeg:
+    #   inputs:
+    #     - path: rtsp://{FRIGATE_RTSP_USER}:{FRIGATE_RTSP_PASSWORD}@192.168.141.15:554/cam/realmonitor?channel=1&subtype=0
+    #       roles:
+    #         - detect
+    #         - record
+
+    detect:
+      width: 3840
+      height: 2160
+      fps: 10
+      enabled: True
+
+    motion:
+      # Increasing this value will make motion detection less sensitive
+      threshold: 30
+      # default 25
+
+      # Minimum size in pixels in the resized motion image that counts as motion.
+      # Increasing this value will prevent smaller areas of motion from being detected. Decreasing will
+      # make motion detection more sensitive to smaller moving objects.
+      # As a rule of thumb:
+      #  - 15 - high sensitivity
+      #  - 30 - medium sensitivity
+      #  - 50 - low sensitivity
+      # contour_area: 35 
+      # default: 30
+
+      mask:
+        - 3840,600,3538,538,3434,1293,2992,1173,3012,705,2268,712,1363,782,1068,848,1130,1173,852,1231,790,890,225,1130,0,1215,0,0,3840,0
+        - 3840,1966,3840,2160,3163,2160,3163,1970
+        - 3782,1374,3751,1634,3488,1560,3538,1308
+        - 2775,1359,3050,1537,3205,1301,2938,1212
+
+    objects:
+      track:
+        - person
+        - animal
+      filters:
+        animal:
+          min_area: 1000
+          max_area: 100000
+          mask:
+            - 3840,600,3314,511,3290,1185,2992,1095,3012,705,2268,712,1363,782,1068,848,1130,1173,852,1231,790,890,225,1130,0,1215,0,0,3840,0
+            - 3840,1966,3840,2160,3163,2160,3163,1970
+            - 3782,1374,3751,1634,3488,1560,3538,1308
+            - 2880,1347,3046,1463,3205,1301,2938,1212
+        person:
+          min_area: 10000
+          # max_area: 100000
+          mask:
+            - 3840,600,3314,511,3290,1185,2992,1095,3012,705,2268,712,1363,782,1068,848,1130,1173,852,1231,790,890,225,1130,0,1215,0,0,3840,0
+            - 3840,1966,3840,2160,3163,2160,3163,1970
+            - 3782,1374,3751,1634,3488,1560,3538,1308
+            - 2880,1347,3046,1463,3205,1301,2938,1212
+
+    record:
+      enabled: True
+      retain:
+        days: 7
+        mode: active_objects
+      events:
+#        max_seconds: 240
+        pre_capture: 5
+        post_capture: 5
+        retain:
+          default: 7
+          mode: active_objects
+ #       objects:
+ #         - person
+ #         - animal
+
+##########################################################
+## Living Room
+##########################################################
+
+  living_room_cam:
+    ffmpeg:
+      output_args:
+        record: preset-record-generic-audio-copy
+      inputs:
+        - path: rtsp://127.0.0.1:8554/living_room_cam # <--- the name here must match the name of the camera in restream
+          input_args: preset-rtsp-restream
+          roles:
+            - record
+            - detect
+
+# Disabled since the above uses the new restream feature
+    # ffmpeg:
+    #   inputs:
+    #     - path: rtsp://{FRIGATE_RTSP_USER}:{FRIGATE_RTSP_PASSWORD}@192.168.141.16:554/cam/realmonitor?channel=1&subtype=0
+    #       roles:
+    #         - detect
+    #         - record
+
+    motion:
+      mask:
+        - 1641,207,1661,615,1239,586,1250,267
+        - 1862,0,1434,0,1440,99,1860,105
+
+    objects:
+      track:
+        - person
+      filters:
+        person:
+          mask:
+            - 1641,207,1661,615,1239,586,1250,267
+            - 1862,0,1434,0,1440,99,1860,105
+
+    detect:
+      width: 1920
+      height: 1080
+      fps: 10
+      enabled: True
+
+    record:
+      enabled: True
+      retain:
+        days: 0
+        # mode: active_objects
+      events:
+#        max_seconds: 240
+        pre_capture: 5
+        post_capture: 5
+        retain:
+          default: 7
+          mode: active_objects
+#        objects:
+#          - person
