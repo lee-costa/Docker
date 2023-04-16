@@ -1,2 +1,2 @@
 # Docker
-Some of my docker configurations
+Some of my docker configurations.
