@@ -1,0 +1,37 @@
+version: "3.9"
+services:
+  frigate:
+    container_name: frigate
+    privileged: true # this may not be necessary for all setups
+    restart: unless-stopped
+#    image: blakeblackshear/frigate:stable
+    image: ghcr.io/blakeblackshear/frigate:stable
+    shm_size: "1g" # update for your cameras based on calculation above
+    devices:
+      - /dev/bus/usb:/dev/bus/usb # passes the USB Coral, needs to be modified for other versions
+      - /dev/apex_0:/dev/apex_0 # passes a PCIe Coral, follow driver instructions here https://coral.ai/docs/m2/get-started/#2a-on-linux
+      - /dev/dri/renderD128 # for intel hwaccel, needs to be updated for your hardware
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /home/lee/docker-compose/frigate/config/frigate.yml:/config/config.yml:ro
+      - /home/lee/docker-compose/frigate/frigate_db:/db
+      - /mnt/freenas/frigate:/media/frigate
+#      - /home/lee/footage:/media/frigate
+      - type: tmpfs # Optional: 1GB of memory, reduces SSD/SD Card wear
+        target: /tmp/cache
+        tmpfs:
+          size: 1000000000
+    ports:
+      - "5000:5000"
+      - "1935:1935" # RTMP feeds
+    environment:
+      FRIGATE_RTSP_PASSWORD: "PASSWORD"
+      FRIGATE_RTSP_USER: "USER"
+#      FRIGATE_MQTT_USER: "USER"
+#      FRIGATE_MQTT_USER_PASS: "PASSWORD"
+    logging:
+      driver: syslog
+      options:
+        syslog-address: "udp://192.168.139.24:8514"
+#        tag: "{{.ImageName}}/{{.Name}}/{{.ID}}"
+        tag: "{{.Name}}"
