@@ -1,0 +1,9 @@
+services:
+  double-take:
+    container_name: double-take
+    image: jakowenko/double-take
+    restart: unless-stopped
+    volumes:
+       - ${PWD}/double-take/.storage:/.storage
+    ports:
+      - 3000:3000
